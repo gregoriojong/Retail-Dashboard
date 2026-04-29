@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>유통 3사 매출 & F&B 분석 대시보드 | 마곡 코엑스 + 압구정</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    color: #1f2937;
+    background: #f8fafc;
+    line-height: 1.6;
+  }
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
+    border-bottom: 1px solid #e5e7eb;
+    padding: 16px 24px;
+  }
+  .nav-inner {
+    max-width: 1280px; margin: 0 auto;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 12px;
+  }
+  .nav-title {
+    font-weight: 700; font-size: 18px; color: #1f4e78;
+  }
+  .nav ul { display: flex; gap: 20px; list-style: none; flex-wrap: wrap; }
+  .nav a {
+    color: #4b5563; text-decoration: none; font-size: 14px; font-weight: 500;
+    transition: color 0.2s;
+  }
+  .nav a:hover { color: #2e75b6; }
+
+  .hero {
+    background: linear-gradient(135deg, #1f4e78 0%, #2e75b6 100%);
+    color: white; padding: 80px 24px;
+    text-align: center;
+  }
+  .hero h1 { font-size: 42px; font-weight: 700; margin-bottom: 16px; letter-spacing: -0.02em; }
+  .hero p { font-size: 18px; opacity: 0.9; max-width: 720px; margin: 0 auto; }
+  .hero-meta {
+    display: inline-flex; gap: 24px; margin-top: 32px;
+    padding: 16px 32px; background: rgba(255,255,255,0.1);
+    border-radius: 12px; backdrop-filter: blur(10px);
+  }
+  .hero-meta span { font-size: 14px; opacity: 0.9; }
+
+  .container {
+    max-width: 1280px; margin: 0 auto; padding: 64px 24px;
+  }
+  .section { margin-bottom: 80px; }
+  .section-title {
+    font-size: 28px; font-weight: 700; margin-bottom: 8px; color: #1f2937;
+    border-left: 4px solid #2e75b6; padding-left: 16px;
+  }
+  .section-sub {
+    color: #6b7280; margin-bottom: 32px; padding-left: 20px;
+  }
+
+  .grid {
+    display: grid; gap: 24px;
+  }
+  .grid-2 { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+  .grid-3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .grid-4 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+
+  .card {
+    background: white; border-radius: 16px; padding: 28px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+    border: 1px solid #e5e7eb;
+  }
+  .card-title {
+    font-size: 16px; font-weight: 600; color: #6b7280;
+    margin-bottom: 8px; letter-spacing: 0.02em; text-transform: uppercase;
+  }
+  .card-value {
+    font-size: 32px; font-weight: 700; color: #1f2937; margin-bottom: 4px;
+  }
+  .card-sub { font-size: 13px; color: #9ca3af; }
+  .card-trend {
+    display: inline-block; padding: 2px 8px; border-radius: 6px;
+    font-size: 12px; font-weight: 600; margin-top: 8px;
+  }
+  .trend-up { background: #d1fae5; color: #065f46; }
+  .trend-down { background: #fee2e2; color: #991b1b; }
+  .trend-neutral { background: #fef3c7; color: #92400e; }
+
+  .chart-card {
+    background: white; border-radius: 16px; padding: 28px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid #e5e7eb;
+  }
+  .chart-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .chart-sub { font-size: 13px; color: #6b7280; margin-bottom: 20px; }
+  .chart-container { position: relative; height: 360px; }
+
+  table {
+    width: 100%; border-collapse: collapse; font-size: 14px;
+  }
+  th {
+    background: #f3f4f6; padding: 12px; text-align: left;
+    font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;
+  }
+  td {
+    padding: 12px; border-bottom: 1px solid #f3f4f6;
+  }
+  tr:hover td { background: #fafbfc; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .highlight {
+    background: linear-gradient(180deg, transparent 60%, #fef3c7 60%);
+    font-weight: 600;
+  }
+
+  .badge {
+    display: inline-block; padding: 4px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-1 { background: #fee2e2; color: #991b1b; }
+  .badge-2 { background: #fed7aa; color: #92400e; }
+  .badge-3 { background: #dbeafe; color: #1e40af; }
+  .badge-high { background: #fee2e2; color: #991b1b; }
+  .badge-med { background: #fef3c7; color: #92400e; }
+  .badge-low { background: #d1fae5; color: #065f46; }
+
+  .insight-box {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-left: 4px solid #f59e0b;
+    padding: 20px 24px; border-radius: 8px;
+    margin: 16px 0;
+  }
+  .insight-title { font-weight: 700; color: #92400e; margin-bottom: 8px; }
+  .insight-list { list-style: none; padding: 0; }
+  .insight-list li {
+    padding: 6px 0; padding-left: 24px; position: relative;
+    font-size: 14px; color: #44403c;
+  }
+  .insight-list li::before {
+    content: "▸"; position: absolute; left: 0; color: #f59e0b; font-weight: bold;
+  }
+
+  .info-row {
+    display: grid; grid-template-columns: 160px 1fr;
+    gap: 16px; padding: 12px 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .info-label { font-weight: 600; color: #6b7280; font-size: 13px; }
+  .info-value { color: #1f2937; font-size: 14px; }
+
+  footer {
+    background: #1f2937; color: #9ca3af; padding: 48px 24px; text-align: center;
+    font-size: 13px;
+  }
+  footer a { color: #60a5fa; text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+  .source-list {
+    max-width: 960px; margin: 24px auto;
+    text-align: left; columns: 2; column-gap: 32px;
+  }
+  .source-list li {
+    list-style: none; padding: 4px 0; font-size: 12px; line-height: 1.5;
+    break-inside: avoid;
+  }
+
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 28px; }
+    .hero p { font-size: 15px; }
+    .hero-meta { flex-direction: column; gap: 8px; }
+    .container { padding: 40px 16px; }
+    .section-title { font-size: 22px; }
+    .source-list { columns: 1; }
+    .info-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-title">📊 유통 분석 대시보드</div>
+    <ul>
+      <li><a href="#overview">개요</a></li>
+      <li><a href="#magok">마곡 코엑스</a></li>
+      <li><a href="#big3">유통3사 매출</a></li>
+      <li><a href="#fnb">F&amp;B 분석</a></li>
+      <li><a href="#apgujeong">압구정 영향</a></li>
+      <li><a href="#sources">출처</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="hero" id="overview">
+  <h1>유통 3사 매출 & 압구정 F&amp;B 분석</h1>
+  <p>마곡 코엑스마곡-르웨스트 단지 분석부터 롯데·신세계·현대 5개년 매출, 압구정 양대 백화점 F&amp;B 영향까지 — 사실 근거 기반 종합 대시보드</p>
+  <div class="hero-meta">
+    <span>📅 분석 기간 2021–2025</span>
+    <span>📑 출처 어패럴뉴스 외 30+</span>
+    <span>🔄 업데이트 2026.04.29</span>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- 1. 핵심 지표 -->
+  <section class="section">
+    <h2 class="section-title">핵심 지표 (2025)</h2>
+    <p class="section-sub">5개년 데이터를 한 화면에서 — 빅3 매출, 압구정 영향, F&amp;B 흡수 규모</p>
+    <div class="grid grid-4">
+      <div class="card">
+        <div class="card-title">롯데백화점 매출</div>
+        <div class="card-value">14.25조</div>
+        <div class="card-sub">31개 점포 / 점유율 35.2%</div>
+        <span class="card-trend trend-up">+4.7% YoY</span>
+      </div>
+      <div class="card">
+        <div class="card-title">신세계백화점 매출</div>
+        <div class="card-value">13.34조</div>
+        <div class="card-sub">13개 점포 / 점유율 33.0%</div>
+        <span class="card-trend trend-up">+8.2% YoY</span>
+      </div>
+      <div class="card">
+        <div class="card-title">현대백화점 매출</div>
+        <div class="card-value">9.10조</div>
+        <div class="card-sub">12개 점포 / 점유율 22.5%</div>
+        <span class="card-trend trend-down">-3.6% YoY</span>
+      </div>
+      <div class="card">
+        <div class="card-title">압구정 양대 F&amp;B</div>
+        <div class="card-value">2,888억</div>
+        <div class="card-sub">현대 압구정+갤러리아 명품관</div>
+        <span class="card-trend trend-up">롯데 강남점 6.1배</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. 마곡 코엑스 -->
+  <section class="section" id="magok">
+    <h2 class="section-title">마곡 코엑스마곡-르웨스트</h2>
+    <p class="section-sub">서울 서부권 최초의 MICE 복합단지 / 연면적 84만㎡ (삼성동 코엑스의 1.8배)</p>
+
+    <div class="grid grid-2">
+      <div class="chart-card">
+        <div class="chart-title">단지 구성 (CP1~CP3-2)</div>
+        <div class="chart-sub">2024년 11월 컨벤션센터 개관 / 2025년 9월 VL르웨스트 준공</div>
+        <table>
+          <thead>
+            <tr><th>블록</th><th>시설</th><th>규모</th><th>준공</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>CP1</td><td>롯데캐슬 르웨스트 (오피스텔)</td><td>876실</td><td>2024</td></tr>
+            <tr><td>CP2</td><td>VL 르웨스트 (시니어레지던스)</td><td>810실</td><td>2025.9</td></tr>
+            <tr><td>CP3-1</td><td>코엑스마곡 컨벤션센터</td><td>전시장 7,452㎡</td><td>2024.11</td></tr>
+            <tr><td>CP3-2</td><td>케이스퀘어 마곡 (오피스)</td><td>4개동 16만㎡</td><td>2024.10</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">마곡지구 상주 인원 추이</div>
+        <div class="chart-sub">2027년까지 상주인구 17만명 예상 (상암 4배·판교 2배)</div>
+        <div class="chart-container"><canvas id="magokChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <div class="insight-title">📍 마곡 핵심 사실</div>
+      <ul class="insight-list">
+        <li>마곡지구 입주계약 기업 약 203곳 / 근무 인원 약 4만명 (2025)</li>
+        <li>케이스퀘어 마곡 — LG AI연구원 입주 확정 / S&amp;I코퍼레이션 운영</li>
+        <li>주요 앵커: LG사이언스파크(9개 계열사), 롯데, 코오롱, 넥센, 에쓰오일, 광동제약, 대웅제약, DL그룹</li>
+        <li>원그로브 입주: DL이앤씨, 사람인, 인비트로스, 파라타항공, 에어인천</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 3. 유통3사 5년 매출 -->
+  <section class="section" id="big3">
+    <h2 class="section-title">유통 3사 5개년 매출 추이 (2021–2025)</h2>
+    <p class="section-sub">단위: 억원 / 점포 합산 매출(거래액) / 출처: 어패럴뉴스</p>
+
+    <div class="grid grid-2">
+      <div class="chart-card">
+        <div class="chart-title">5개년 매출 추이</div>
+        <div class="chart-sub">롯데 1위 5년 연속 / 신세계 격차 축소 / 현대 정체</div>
+        <div class="chart-container"><canvas id="big3LineChart"></canvas></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">2025 시장점유율 (3사 합계 기준)</div>
+        <div class="chart-sub">롯데 38.8% · 신세계 36.4% · 현대 24.8%</div>
+        <div class="chart-container"><canvas id="shareChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-top: 24px;">
+      <div class="chart-title">연도별 빅3 매출 비교</div>
+      <div class="chart-sub">5년간 절대 매출 1위 롯데, 가장 빠른 성장 신세계</div>
+      <div class="chart-container" style="height: 400px;"><canvas id="big3BarChart"></canvas></div>
+    </div>
+  </section>
+
+  <!-- 4. F&B 분석 -->
+  <section class="section" id="fnb">
+    <h2 class="section-title">점포별 F&amp;B 매출 비중 분석</h2>
+    <p class="section-sub">산업통상자원부 평균 13.5%(2024) / 회사별 차이 — 현대 16-18% · 롯데 11-13% · 신세계 8-10% · 갤러리아 5-7%</p>
+
+    <div class="grid grid-2">
+      <div class="chart-card">
+        <div class="chart-title">주요 점포 F&amp;B 비중 추이 (2021–2025)</div>
+        <div class="chart-sub">현대 계열 압도적 우위 / 갤러리아 가장 낮으나 상승</div>
+        <div class="chart-container" style="height: 420px;"><canvas id="fnbTrendChart"></canvas></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">2025 점포별 F&amp;B 매출 (억원)</div>
+        <div class="chart-sub">롯데 잠실점이 절대 매출 1위 (4,291억)</div>
+        <div class="chart-container" style="height: 420px;"><canvas id="fnbAmountChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-top: 24px;">
+      <div class="chart-title">2025 점포별 매출 + F&amp;B 비중 종합표</div>
+      <div class="chart-sub">단위: 억원, %</div>
+      <table>
+        <thead>
+          <tr>
+            <th>순위</th><th>점포</th><th class="num">2025 매출</th><th class="num">F&amp;B 비중</th>
+            <th class="num">F&amp;B 매출</th><th>주요 특징</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="badge badge-1">1</span></td><td>신세계 강남점</td><td class="num">36,717</td><td class="num">9.5%</td><td class="num">3,488</td><td>9년 연속 1위</td></tr>
+          <tr><td><span class="badge badge-2">2</span></td><td>롯데 잠실점</td><td class="num">33,010</td><td class="num">13.0%</td><td class="num highlight">4,291</td><td>F&amp;B 매출 1위</td></tr>
+          <tr><td><span class="badge badge-3">3</span></td><td>신세계 센텀시티</td><td class="num">22,000</td><td class="num">11.0%</td><td class="num">2,420</td><td>지방 1위</td></tr>
+          <tr><td>4</td><td>롯데 본점</td><td class="num">20,000</td><td class="num">13.5%</td><td class="num">2,700</td><td>도심 핵심점</td></tr>
+          <tr><td>5</td><td>현대 판교점</td><td class="num">14,000</td><td class="num">17.5%</td><td class="num">2,450</td><td>현대 F&amp;B 비중 최고</td></tr>
+          <tr style="background: #fef3c7;"><td>6</td><td><strong>현대 압구정본점</strong></td><td class="num">12,500</td><td class="num">16.5%</td><td class="num">2,063</td><td>가스트로테이블 +56.9%</td></tr>
+          <tr><td>7</td><td>현대 무역센터점</td><td class="num">12,000</td><td class="num">17.0%</td><td class="num">2,040</td><td>강남권 1조 클럽</td></tr>
+          <tr><td>8</td><td>더현대 서울</td><td class="num">12,500</td><td class="num">14.5%</td><td class="num">1,813</td><td>여의도 핫플</td></tr>
+          <tr style="background: #fef3c7;"><td>9</td><td><strong>갤러리아 명품관</strong></td><td class="num">11,000</td><td class="num">7.5%</td><td class="num">825</td><td>고메이494 +26%</td></tr>
+          <tr><td>10</td><td><strong>롯데 강남점</strong></td><td class="num">3,500</td><td class="num">13.5%</td><td class="num">473</td><td>식품관 6,000평</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 5. 압구정 영향 분석 -->
+  <section class="section" id="apgujeong">
+    <h2 class="section-title">압구정 양대점 → 롯데 강남점 영향</h2>
+    <p class="section-sub">현대 압구정본점 + 갤러리아 명품관 F&amp;B 리뉴얼이 롯데 강남점에 미치는 흡수 영향</p>
+
+    <div class="grid grid-3">
+      <div class="card">
+        <div class="card-title">현대 압구정본점 (2024)</div>
+        <div class="card-value">1.20조</div>
+        <div class="card-sub">36년 만에 1조 돌파 (2021)</div>
+        <div class="info-row" style="margin-top: 12px; padding: 0;">
+          <span class="info-label">F&amp;B 비중</span>
+          <span class="info-value"><strong>13% → 16.5%</strong> (5년)</span>
+        </div>
+        <div class="info-row" style="padding: 0;">
+          <span class="info-label">리뉴얼</span>
+          <span class="info-value">가스트로테이블 (2023.7)</span>
+        </div>
+        <div class="info-row" style="padding: 0; border: 0;">
+          <span class="info-label">초기 효과</span>
+          <span class="info-value" style="color: #dc2626; font-weight: 700;">F&amp;B +56.9%</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">갤러리아 명품관 (2024)</div>
+        <div class="card-value">1.0조</div>
+        <div class="card-sub">2022년 1.23조 → 역성장</div>
+        <div class="info-row" style="margin-top: 12px; padding: 0;">
+          <span class="info-label">F&amp;B 비중</span>
+          <span class="info-value"><strong>5.5% → 7.5%</strong> (5년)</span>
+        </div>
+        <div class="info-row" style="padding: 0;">
+          <span class="info-label">명품 비중</span>
+          <span class="info-value">약 40% (3사 평균 30%)</span>
+        </div>
+        <div class="info-row" style="padding: 0; border: 0;">
+          <span class="info-label">고메이494</span>
+          <span class="info-value" style="color: #dc2626; font-weight: 700;">+26%, 객수 +10%</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">롯데 강남점 (대치동, 2024)</div>
+        <div class="card-value">3,400억</div>
+        <div class="card-sub">강남권 1조 클럽 미진입</div>
+        <div class="info-row" style="margin-top: 12px; padding: 0;">
+          <span class="info-label">F&amp;B 비중</span>
+          <span class="info-value"><strong>11% → 13.5%</strong> (5년)</span>
+        </div>
+        <div class="info-row" style="padding: 0;">
+          <span class="info-label">식품관 면적</span>
+          <span class="info-value">6,000평 (국내 최대)</span>
+        </div>
+        <div class="info-row" style="padding: 0; border: 0;">
+          <span class="info-label">2025 F&amp;B 매출</span>
+          <span class="info-value" style="color: #dc2626; font-weight: 700;">약 473억 (양대 1/6)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-top: 24px;">
+      <div class="chart-title">압구정 양대점 vs 롯데 강남점 F&amp;B 매출 비교</div>
+      <div class="chart-sub">5개년 추이 — 압구정의 흡수 압력 강도 가시화</div>
+      <div class="chart-container" style="height: 360px;"><canvas id="apgujeongChart"></canvas></div>
+    </div>
+
+    <div class="chart-card" style="margin-top: 24px;">
+      <div class="chart-title">F&amp;B 흡수 시나리오별 영향 강도</div>
+      <table>
+        <thead>
+          <tr><th>영향 분야</th><th>강도</th><th>핵심 근거</th><th>대응 방향</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>VIP 미식 고객 이탈</td>
+            <td><span class="badge badge-high">高</span></td>
+            <td>현대·갤러리아 1조 클럽, 롯데 강남점 1조 미만</td>
+            <td>식품관 6천평 강점 활용, 객단가 KPI 재설계</td>
+          </tr>
+          <tr>
+            <td>디저트·MZ 핫플</td>
+            <td><span class="badge badge-high">高</span></td>
+            <td>갤러리아 8개 신규 중 5개 백화점 첫 입점</td>
+            <td>차별화 PB 디저트, 외국인·MZ 콘텐츠 강화</td>
+          </tr>
+          <tr>
+            <td>프리미엄 한식·미슐랭</td>
+            <td><span class="badge badge-med">中</span></td>
+            <td>모수·소설한남·주옥 셰프 = 미식 톱티어</td>
+            <td>잠실점과 강남권 클러스터 전략</td>
+          </tr>
+          <tr>
+            <td>외국인 관광객 동선</td>
+            <td><span class="badge badge-med">中</span></td>
+            <td>갤러리아 명품+F&amp;B 패키지</td>
+            <td>잠실·강남 환승 동선 마케팅</td>
+          </tr>
+          <tr>
+            <td>로컬 거주층 (대치동)</td>
+            <td><span class="badge badge-low">低</span></td>
+            <td>주말 10만명+, 반찬가게 월 1억원</td>
+            <td>근린형 데일리 식품 강화로 안정성</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="insight-box">
+      <div class="insight-title">💡 종합 시사점</div>
+      <ul class="insight-list">
+        <li>현대 압구정본점 — 가스트로테이블 오픈 첫날 F&amp;B +56.9%, 5년간 비중 13%→16.5%로 가장 빠른 미식 성장</li>
+        <li>갤러리아 명품관 — 명품 40% 구조로 F&amp;B 비중 낮으나, 고메이494 단일 리뉴얼로 매출 +26%, 냉동식품 +222%</li>
+        <li>2025 압구정 양대 F&amp;B 합계 ≈ 2,888억원 — 롯데 강남점(473억)의 6.1배</li>
+        <li>다만 롯데는 잠실점(4,291억)+강남점(473억) 합계 4,764억원으로 그룹 단위 절대 1위 유지</li>
+        <li>롯데 대응: 강남점-잠실점 클러스터 전략 + 마곡 코엑스마곡(서울 서부 신상권) 우회 거점 활용 권장</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer id="sources">
+  <div style="font-weight: 600; color: white; margin-bottom: 16px;">📑 출처 (사실 근거)</div>
+  <ul class="source-list">
+    <li>• 어패럴뉴스 — 2021/2022/2023/2024/2025 5대 백화점 매출 순위</li>
+    <li>• 산업통상자원부 — 백화점 식품 매출 비중 (2022 12.7% / 2023 13.2% / 2024 13.5%)</li>
+    <li>• 이코노미스트 — 현대백화점 압구정본점 36년 만 매출 1조</li>
+    <li>• 한국경제 — 갤러리아 백화점 명품 비중 40%</li>
+    <li>• 한국경제 — 갤러리아 명품관 외국인 매출 역대 최대</li>
+    <li>• 아시아경제 — 갤러리아 새단장 고메이494 매출 26% 신장</li>
+    <li>• 뉴데일리 — 가스트로 테이블 오픈 첫날 F&amp;B +56.9%</li>
+    <li>• 더피알 — 강남 백화점 식품관 대변신: 신세계 8% / 더현대 13.4%</li>
+    <li>• 헤럴드경제 — 백화점 식품관 이유있는 확장</li>
+    <li>• 시사저널e — 현대백화점 점포 리뉴얼 2,600억원 투자</li>
+    <li>• 이투데이 — 신세계 강남 vs 롯데 잠실: 명품·F&amp;B가 1등 백화점 승패 가른다</li>
+    <li>• 패션비즈 — 2025년 상반기 백화점 매출 순위</li>
+    <li>• 한국섬유신문 — 백화점 70곳 총매출 39.6조원</li>
+    <li>• 인사이트코리아 — 강남권 신세계·롯데백화점 대격돌</li>
+    <li>• 서울경제 — 코람코 마곡 오피스 케이스퀘어 준공</li>
+    <li>• 더벨 — 케이스퀘어 마곡, S&amp;I코퍼레이션 운영</li>
+    <li>• 머니투데이 — 코엑스 1.8배 마곡 르웨스트 콤팩트시티</li>
+    <li>• 한국일보 — 코엑스 1.8배 마곡 르웨스트</li>
+    <li>• 파이낸셜뉴스 — 상주인구 17만명 마곡</li>
+    <li>• 서울 열린데이터광장 — 마곡 입주기업 현황</li>
+    <li>• 일요신문 — 갤러리아 명품 전략 의존 역성장</li>
+    <li>• 신아일보 — 갤러리아 고메이494 매출 26% 신장</li>
+    <li>• 브릿지경제 — 갤러리아 고메이494 리뉴얼 8곳 (2026)</li>
+    <li>• 나무위키 — 코엑스마곡-르웨스트 / 현대백화점 압구정본점 / 갤러리아백화점</li>
+  </ul>
+  <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #374151; color: #6b7280;">
+    분석 작성일: 2026-04-29 · 분석 기간: 2021–2025 5개년<br>
+    ※ 본 대시보드는 사실 근거 기반 분석 자료이며, 일부 점포의 F&amp;B 비중은 산업통상자원부 평균과 회사별 특성을 반영한 추정치를 포함합니다.
+  </div>
+</footer>
+
+<script>
+const FONT = "-apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+Chart.defaults.font.family = FONT;
+Chart.defaults.color = '#4b5563';
+
+// 1. 마곡 인구 추이
+new Chart(document.getElementById('magokChart'), {
+  type: 'line',
+  data: {
+    labels: ['2023', '2024', '2025', '2026', '2027(E)'],
+    datasets: [{
+      label: '근무 인원 (만명)',
+      data: [3.0, 3.6, 4.0, 4.5, 5.0],
+      borderColor: '#2e75b6',
+      backgroundColor: 'rgba(46,117,182,0.1)',
+      tension: 0.3, fill: true
+    }, {
+      label: '상주인구 추정 (만명)',
+      data: [10, 12, 14, 16, 17],
+      borderColor: '#dc2626',
+      backgroundColor: 'rgba(220,38,38,0.1)',
+      tension: 0.3, fill: true
+    }]
+  },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+});
+
+// 2. 빅3 5년 라인
+new Chart(document.getElementById('big3LineChart'), {
+  type: 'line',
+  data: {
+    labels: ['2021','2022','2023','2024','2025'],
+    datasets: [
+      { label: '롯데백화점', data: [117744,136716,137454,136175,142525], borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.1)', tension: 0.3, fill: false, borderWidth: 3 },
+      { label: '신세계백화점', data: [96363,115760,121788,123345,133435], borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', tension: 0.3, fill: false, borderWidth: 3 },
+      { label: '현대백화점', data: [84801,93998,96161,94498,91049], borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.1)', tension: 0.3, fill: false, borderWidth: 3 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom' } },
+    scales: { y: { ticks: { callback: v => (v/10000).toFixed(0) + '조' } } }
+  }
+});
+
+// 3. 점유율 도넛
+new Chart(document.getElementById('shareChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['롯데 (38.8%)', '신세계 (36.4%)', '현대 (24.8%)'],
+    datasets: [{
+      data: [142525, 133435, 91049],
+      backgroundColor: ['#fbbf24', '#10b981', '#f97316'],
+      borderWidth: 2, borderColor: 'white'
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom' },
+      tooltip: { callbacks: { label: c => c.label + ': ' + (c.raw/10000).toFixed(2) + '조원' } }
+    }
+  }
+});
+
+// 4. 빅3 막대
+new Chart(document.getElementById('big3BarChart'), {
+  type: 'bar',
+  data: {
+    labels: ['2021','2022','2023','2024','2025'],
+    datasets: [
+      { label: '롯데', data: [117744,136716,137454,136175,142525], backgroundColor: '#fbbf24' },
+      { label: '신세계', data: [96363,115760,121788,123345,133435], backgroundColor: '#10b981' },
+      { label: '현대', data: [84801,93998,96161,94498,91049], backgroundColor: '#f97316' }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom' } },
+    scales: { y: { ticks: { callback: v => (v/10000).toFixed(0) + '조' } } }
+  }
+});
+
+// 5. F&B 비중 추이
+new Chart(document.getElementById('fnbTrendChart'), {
+  type: 'line',
+  data: {
+    labels: ['2021','2022','2023','2024','2025'],
+    datasets: [
+      { label: '현대 판교', data: [15.0,16.0,16.5,17.0,17.5], borderColor: '#f97316', backgroundColor: 'transparent', tension: 0.3 },
+      { label: '현대 압구정', data: [13.0,13.5,15.5,16.0,16.5], borderColor: '#dc2626', backgroundColor: 'transparent', tension: 0.3, borderWidth: 3 },
+      { label: '현대 무역센터', data: [14.5,15.5,16.0,16.5,17.0], borderColor: '#fb923c', backgroundColor: 'transparent', tension: 0.3 },
+      { label: '더현대 서울', data: [13.0,13.4,13.5,14.0,14.5], borderColor: '#fdba74', backgroundColor: 'transparent', tension: 0.3 },
+      { label: '롯데 잠실', data: [11.0,11.5,12.0,12.5,13.0], borderColor: '#fbbf24', backgroundColor: 'transparent', tension: 0.3 },
+      { label: '롯데 본점', data: [11.5,12.0,12.5,13.0,13.5], borderColor: '#fde047', backgroundColor: 'transparent', tension: 0.3 },
+      { label: '롯데 강남', data: [11.0,11.5,12.0,13.0,13.5], borderColor: '#facc15', backgroundColor: 'transparent', tension: 0.3, borderDash: [5,5] },
+      { label: '신세계 강남', data: [7.5,7.8,8.0,8.5,9.5], borderColor: '#10b981', backgroundColor: 'transparent', tension: 0.3 },
+      { label: '신세계 센텀', data: [9.0,9.5,10.0,10.5,11.0], borderColor: '#34d399', backgroundColor: 'transparent', tension: 0.3 },
+      { label: '갤러리아 명품관', data: [5.5,6.0,6.5,7.0,7.5], borderColor: '#8b5cf6', backgroundColor: 'transparent', tension: 0.3, borderWidth: 3 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+    scales: { y: { ticks: { callback: v => v + '%' }, min: 4, max: 19 } }
+  }
+});
+
+// 6. 2025 F&B 매출액
+new Chart(document.getElementById('fnbAmountChart'), {
+  type: 'bar',
+  data: {
+    labels: ['롯데 잠실', '신세계 강남', '롯데 본점', '신세계 센텀', '현대 판교', '현대 압구정', '현대 무역', '더현대 서울', '갤러리아', '롯데 강남'],
+    datasets: [{
+      label: '2025 F&B 매출 (억원)',
+      data: [4291, 3488, 2700, 2420, 2450, 2063, 2040, 1813, 825, 473],
+      backgroundColor: ['#fbbf24','#10b981','#fbbf24','#10b981','#f97316','#dc2626','#f97316','#f97316','#8b5cf6','#fbbf24'],
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw.toLocaleString() + ' 억원' } } },
+    scales: { x: { ticks: { callback: v => v.toLocaleString() } } }
+  }
+});
+
+// 7. 압구정 vs 롯데 강남
+new Chart(document.getElementById('apgujeongChart'), {
+  type: 'bar',
+  data: {
+    labels: ['2021','2022','2023','2024','2025'],
+    datasets: [
+      { label: '현대 압구정 F&B', data: [1300, 1485, 1783, 1923, 2063], backgroundColor: '#dc2626' },
+      { label: '갤러리아 명품관 F&B', data: [462, 736, 741, 700, 825], backgroundColor: '#8b5cf6' },
+      { label: '롯데 강남점 F&B', data: [308, 345, 384, 442, 473], backgroundColor: '#fbbf24' }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom' },
+      tooltip: { callbacks: { label: c => c.dataset.label + ': ' + c.raw.toLocaleString() + ' 억원' } }
+    },
+    scales: { y: { ticks: { callback: v => v.toLocaleString() + '억' } } }
+  }
+});
+</script>
+
+</body>
+</html>
